@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#e9d6bd">
+<title>Mystic Tarot | คำทำนายของคุณ</title>
+<style>
+*{box-sizing:border-box}
+html{min-height:100%}
+body{margin:0;min-height:100vh;color:#4b3247;font-family:Tahoma,Arial,sans-serif;background:url('fantasy-bg.jpg') center center/cover fixed no-repeat #d9c5e8}
+main{max-width:590px;margin:auto;padding:25px 14px 60px;text-align:center}
+.star{font-size:28px;color:#fff0b5;text-shadow:0 2px 8px #56345c}
+.brand{font-family:Georgia,serif;font-style:italic;color:#fff5df;font-size:clamp(34px,9vw,50px);text-shadow:0 2px 8px #533554,0 0 14px #6a3d74}
+.subtitle{color:white;text-shadow:0 2px 5px #46314c;margin:6px 0 18px}
+.panel{border:1px solid #f4dba7;background:rgba(255,249,242,.78);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);box-shadow:0 8px 28px #49364b55;border-radius:20px;padding:18px 17px;margin:12px auto}
+.label{font-size:13px;letter-spacing:1px;color:#825477}
+.card-back,.card-front{margin:18px auto;width:min(58vw,230px);aspect-ratio:2/3.25;border:8px ridge #b68a53;border-radius:12px;box-shadow:0 10px 24px #6d547b55;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden}
+.card-back{background:radial-gradient(circle,#7662a5,#29274e);color:#f6d9a2;font-size:65px;animation:flip .9s ease both}
+.card-front{background:linear-gradient(150deg,#f8e9ce,#e7cda5);color:#65476c;padding:10px;font-family:Georgia,serif}
+.card-front img{width:100%;height:100%;object-fit:cover;border-radius:3px}
+.card-front .sigil{font-size:65px}.card-front strong{font-size:21px;overflow-wrap:anywhere}
+h2{font-family:Georgia,serif;color:#82547c;margin:12px 0}h3{color:#855a67;margin:17px 0 5px;font-size:16px}
+p{line-height:1.75;margin:5px 0 10px}.reading-text{text-align:left;padding:0 4px}
+.note{font-size:12px;opacity:.8;margin-top:20px}.hidden{display:none!important}
+.controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:16px 0 8px}
+button{border:1px solid #b99669;border-radius:999px;padding:11px 17px;background:#684a79;color:#fff;font:inherit;cursor:pointer;box-shadow:0 3px 10px #5b3c6455}
+button.secondary{background:#fff9ee;color:#684a79}
+button:disabled{opacity:.5;cursor:not-allowed}
+.audio-hint{font-size:12px;color:#765b69;margin:8px 0}
+@keyframes flip{0%{transform:rotateY(0) scale(.85);opacity:.5}100%{transform:rotateY(360deg) scale(1);opacity:1}}
+.error{color:#a53e50}
+@media(max-width:600px){body{background-attachment:scroll}main{padding-top:15px}.panel{background:rgba(255,249,242,.72)}}
+</style>
+</head>
+<body>
+<main>
+<div class="star">✧</div><div class="brand">Mystic Tarot</div><p class="subtitle">คำทำนายที่รอคุณอยู่ในวันนี้</p>
+<section class="panel">
+<div class="label">✦ ไพ่แห่งช่วงเวลานี้ ✦</div>
+<div id="loading"><div class="card-back">✧</div><p>กำลังเปิดไพ่ของคุณ...</p></div>
+<div id="reading" class="hidden">
+<div class="card-front" id="cardArt"><div class="sigil">✦</div><strong id="cardName"></strong></div>
+<h2 id="headline"></h2>
+<div class="controls"><button id="playBtn" type="button">▶ ฟังคำทำนายพร้อมดนตรี</button><button id="stopBtn" class="secondary" type="button" disabled>■ หยุดเสียง</button></div>
+<p class="audio-hint" id="audioStatus">แตะปุ่มเพื่อเริ่มเสียงอ่านและดนตรี</p>
+<div class="reading-text"><h3>ภาพรวม</h3><p id="overview"></p><h3>การงาน</h3><p id="work"></p><h3>การเงิน</h3><p id="money"></p><h3>ความรัก</h3><p id="love"></p><h3>ข้อความจากไพ่</h3><p id="message"></p></div>
+</div><p class="note">คำทำนายเพื่อการสะท้อนความคิดและความบันเทิง</p>
+</section>
+</main>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+let current=null, audioContext=null, musicTimer=null, musicNodes=[], speaking=false;
+const fields=['overview','work','money','love','message'];
+function set(id,value){$(id).textContent=String(value??'')}
+function readingFor(card){
+ const theme=card.theme||'การเปลี่ยนแปลงและการเติบโต';
+ return {
+  name:card.name||'ไพ่แห่งช่วงเวลานี้',
+  headline:card.headline||theme,
+  overview:card.overview||`ไพ่ใบนี้ชวนให้คุณใส่ใจกับ${theme} ลองมองสิ่งที่เกิดขึ้นอย่างรอบคอบและเลือกก้าวต่อไปในจังหวะของตัวเอง`,
+  work:card.work||`ใช้พลังของ${theme}ในการจัดลำดับงาน เลือกสิ่งสำคัญก่อนและเปิดรับวิธีใหม่ ๆ`,
+  money:card.money||'ทบทวนรายรับรายจ่ายก่อนตัดสินใจเรื่องใหญ่ ความรอบคอบจะช่วยให้คุณมั่นคงขึ้น',
+  love:card.love||'สื่อสารความรู้สึกอย่างตรงไปตรงมา พร้อมรับฟังอีกฝ่ายด้วยความเข้าใจ',
+  message:card.message||`${theme} อาจเป็นกุญแจให้คุณมองเห็นโอกาสในวันนี้`
+ };
+}
+function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null}for(const node of musicNodes){try{node.stop()}catch(e){}}musicNodes=[];if(audioContext){audioContext.close().catch(()=>{});audioContext=null}}
+function stopAll(){speaking=false;if('speechSynthesis' in window)speechSynthesis.cancel();stopMusic();$('stopBtn').disabled=true;$('playBtn').disabled=false;set('audioStatus','แตะปุ่มเพื่อฟังอีกครั้ง')}
+function startMusic(){
+ const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+ audioContext=new AC();audioContext.resume().catch(()=>{});
+ const notes=[261.63,329.63,392,523.25,440,349.23,392,293.66];let i=0;
+ const playNote=()=>{if(!audioContext||audioContext.state==='closed')return;const t=audioContext.currentTime;
+  for(const mult of [1,1.5]){const osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type='sine';osc.frequency.value=notes[i%notes.length]*mult;gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(mult===1?.012:.004,t+.18);gain.gain.exponentialRampToValueAtTime(.0001,t+2.3);osc.connect(gain).connect(audioContext.destination);osc.start(t);osc.stop(t+2.4);musicNodes.push(osc)}i++};
+ playNote();musicTimer=setInterval(playNote,2300);
+}
+function speak(){
+ if(!current)return;
+ stopAll();
+ if(!('speechSynthesis' in window)){set('audioStatus','เบราว์เซอร์นี้ไม่รองรับเสียงอ่านภาษาไทย');return}
+ try{startMusic()}catch(e){console.warn('Music unavailable',e)}
+ const script=`ไพ่ของคุณคือ ${current.name}。${current.headline}。ภาพรวม。${current.overview}。การงาน。${current.work}。การเงิน。${current.money}。ความรัก。${current.love}。ข้อความจากไพ่。${current.message}`;
+ const utterance=new SpeechSynthesisUtterance(script);utterance.lang='th-TH';utterance.rate=.88;utterance.pitch=.9;utterance.volume=1;
+ const voices=speechSynthesis.getVoices();const thai=voices.filter(v=>v.lang.toLowerCase().startsWith('th'));if(thai.length)utterance.voice=thai.find(v=>/male|ชาย/i.test(v.name))||thai[0];
+ speaking=true;$('playBtn').disabled=true;$('stopBtn').disabled=false;set('audioStatus','กำลังอ่านคำทำนาย…');
+ utterance.onend=()=>{if(speaking)stopAll()};utterance.onerror=e=>{console.warn(e);if(speaking){stopAll();set('audioStatus','ไม่สามารถเล่นเสียงอ่านได้ โปรดลองอีกครั้ง')}};
+ speechSynthesis.cancel();speechSynthesis.speak(utterance);
+}
+$('playBtn').addEventListener('click',speak);$('stopBtn').addEventListener('click',stopAll);
+window.addEventListener('pagehide',stopAll);
+(async()=>{try{
+ const response=await fetch('cards.json',{cache:'no-store'});if(!response.ok)throw Error('โหลดข้อมูลไพ่ไม่ได้');
+ const cards=await response.json();if(!Array.isArray(cards)||!cards.length)throw Error('ไม่พบข้อมูลไพ่');
+ const bytes=new Uint32Array(1);crypto.getRandomValues(bytes);const card=cards[bytes[0]%cards.length];current=readingFor(card);
+ set('cardName',current.name);set('headline',current.headline);for(const f of fields)set(f,current[f]);
+ // Supports optional image property in cards.json, e.g. "image":"cards/17.png".
+ if(typeof card.image==='string'&&card.image.trim()){
+  const img=document.createElement('img');img.alt=current.name;img.loading='eager';img.onerror=()=>img.remove();img.src=card.image;
+  $('cardArt').replaceChildren(img);
+ }
+ setTimeout(()=>{$('loading').classList.add('hidden');$('reading').classList.remove('hidden')},900);
+ }catch(e){$('loading').innerHTML='<p class="error">ไม่สามารถโหลดไพ่ได้ กรุณาลองเปิดหน้าเว็บอีกครั้ง</p>';console.error(e)}})();
+})();
+</script>
+</body>
+</html>
